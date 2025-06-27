@@ -2,62 +2,239 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Photo, Location & WhatsApp App</title>
+  <title>📷 Location & WhatsApp App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #eef2f7;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      min-height: 100vh;
       display: flex;
       justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-      padding: 30px 10px;
+      align-items: center;
+      padding: 40px 20px;
     }
 
     .container {
-      background: white;
+      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
       padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 6px 30px rgba(0, 0, 0, 0.1);
-      text-align: center;
-      max-width: 700px;
+      max-width: 750px;
       width: 100%;
+      text-align: center;
+      color: #fff;
     }
 
     h1 {
       margin-bottom: 20px;
-      color: #222;
+      font-size: 28px;
+    }
+
+    input, button {
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      margin: 8px 0;
+    }
+
+    input {
+      width: 90%;
+      max-width: 500px;
+      background-color: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    input::placeholder {
+      color: #ccc;
+    }
+
+    button {
+      cursor: pointer;
+      margin: 10px 6px;
+      font-weight: bold;
+      transition: 0.3s ease;
+    }
+
+    .btn-green   { background: #00c853; color: #fff; }
+    .btn-red     { background: #d50000; color: #fff; }
+    .btn-blue    { background: #2962ff; color: #fff; }
+    .btn-orange  { background: #ff9100; color: #fff; }
+    .btn-whatsapp{ background: #25D366; color: #fff; }
+
+    button:hover {
+      transform: scale(1.05);
+      opacity: 0.9;
     }
 
     video, canvas {
       width: 100%;
-      max-width: 640px;
-      border-radius: 12px;
-      margin-bottom: 20px;
+      max-width: 600px;
+      border-radius: 16px;
+      margin: 20px 0;
+      border: 2px solid rgba(255, 255, 255, 0.2);
     }
 
-    button {
-      padding: 12px 24px;
+    video {
+      transform: scaleX(-1);
+    }
+
+    canvas {
+      display: none;
+    }
+
+    #output {
+      margin-top: 15px;
+      font-weight: 600;
       font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin: 10px 5px;
+      color: #f1f1f1;
     }
 
-    input {
-      padding: 12px;
-      width: 90%;
-      max-width: 500px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 8px;
+    hr {
+      margin: 30px 0;
+      border: 0;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.2);
     }
 
-    #capture { background-color: #4CAF50; color: white; }
-    #retake
+    @media screen and (max-width: 600px) {
+      h1 { font-size: 22px; }
+      input, button { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>📸 Photo, Location & WhatsApp App</h1>
+
+    <!-- Camera -->
+    <video id="video" autoplay muted></video>
+    <canvas id="canvas" width="640" height="480"></canvas><br>
+    <button class="btn-green" id="capture" onclick="capture()">📷 Capture</button>
+    <button class="btn-red" id="retake" onclick="retake()" style="display: none;">🔄 Retake</button>
+
+    <hr>
+
+    <!-- Location & Route -->
+    <input type="text" id="destination" placeholder="🌍 Enter address or place (e.g., India Gate)">
+    <br>
+    <button class="btn-orange" onclick="getGeolocation()">📌 Get Coordinates</button>
+    <button class="btn-blue" onclick="showRoute()">🗺️ Show Route</button>
+    <div id="output"></div>
+
+    <hr>
+
+    <!-- WhatsApp -->
+    <h3>💬 Send WhatsApp Message</h3>
+    <input type="text" id="whatsappNumber" placeholder="📞 Enter phone number with country code">
+    <input type="text" id="whatsappMessage" placeholder="✉️ Enter your message">
+    <br>
+    <button class="btn-whatsapp" onclick="sendWhatsApp()">📲 Send via WhatsApp</button>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const captureBtn = document.getElementById('capture');
+    const retakeBtn = document.getElementById('retake');
+    const destinationInput = document.getElementById('destination');
+    const output = document.getElementById('output');
+    let currentLat = null;
+    let currentLng = null;
+
+    // Start camera
+    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+      video.srcObject = stream;
+    }).catch(err => {
+      alert("Unable to access the camera.");
+      console.error(err);
+    });
+
+    // Get user geolocation
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        currentLat = position.coords.latitude;
+        currentLng = position.coords.longitude;
+      },
+      error => {
+        alert("Location access denied.");
+      }
+    );
+
+    function capture() {
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      video.style.display = 'none';
+      canvas.style.display = 'block';
+      captureBtn.style.display = 'none';
+      retakeBtn.style.display = 'inline';
+
+      const link = document.createElement('a');
+      link.download = 'photo.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function retake() {
+      video.style.display = 'block';
+      canvas.style.display = 'none';
+      captureBtn.style.display = 'inline';
+      retakeBtn.style.display = 'none';
+    }
+
+    function getGeolocation() {
+      const destination = destinationInput.value.trim();
+      if (!destination) return alert("Please enter a location.");
+
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destination)}`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          if (data.length > 0) {
+            const lat = data[0].lat;
+            const lon = data[0].lon;
+            output.textContent = `📍 ${destination}: Latitude = ${lat}, Longitude = ${lon}`;
+          } else {
+            output.textContent = "❌ Location not found.";
+          }
+        })
+        .catch(() => {
+          output.textContent = "⚠️ Error fetching location.";
+        });
+    }
+
+    function showRoute() {
+      const destination = destinationInput.value.trim();
+      if (!destination) return alert("Enter destination to show route.");
+      if (!currentLat || !currentLng) return alert("GPS not ready or permission denied.");
+
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${currentLat},${currentLng}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+      window.open(mapsUrl, '_blank');
+    }
+
+    function sendWhatsApp() {
+      const phone = document.getElementById('whatsappNumber').value.trim();
+      const message = document.getElementById('whatsappMessage').value.trim();
+      if (!phone || !message) return alert("Please enter phone and message.");
+
+      const cleanPhone = phone.replace(/[^\d]/g, '');
+      const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  </script>
+</body>
+</html>
